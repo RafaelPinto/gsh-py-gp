@@ -1,0 +1,20 @@
+name: gsh_py_gp
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - setuptools
+  - wheel
+  - invoke
+  - notebook
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
+  - numpy
+  - matplotlib
+  - papermill
+  - pandas
+  - scipy
+  - pip
+  # - pip:
+  #     - -e .
