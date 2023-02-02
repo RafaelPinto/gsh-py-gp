@@ -14,6 +14,7 @@ dependencies:
   - matplotlib
   - papermill
   - pandas
+  - requests
   - scipy
   - pip
   - pip:
