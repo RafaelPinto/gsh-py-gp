@@ -5,6 +5,22 @@ import requests
 URL_BASE = "https://swung-hosted.s3.ca-central-1.amazonaws.com/"
 
 
+def line_count(filepath : Path) -> None:
+    """Print number of lines (count) in file.
+
+    Parameters
+    ----------
+        filepath : pathlib.Path
+            Path to the file that will be read.
+    
+    """
+    count = 0
+    with open(filepath, "r") as fhandle:
+        for line in fhandle:
+            count += 1
+    print(f"Line count: {count:,}")
+
+
 def head(filepath : Path, max_line_count : int = 10) -> None:
     """Print lines from file.
 
