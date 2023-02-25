@@ -1,6 +1,8 @@
 from pathlib import Path
 import requests
 
+import pandas as pd
+
 
 URL_BASE = "https://swung-hosted.s3.ca-central-1.amazonaws.com/"
 
@@ -78,4 +80,30 @@ def download_from_groningen(
             r.raise_for_status()
             with open(fullpath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=2_097_152):  # Bytes in chunk.
-                    f.write(chunk) 
+                    f.write(chunk)
+
+
+def read_petrel_exported_pointset(filepath : Path) -> pd.DataFrame:
+    """Read Petrel exported point set into a dataframe.
+
+    Parameters
+    ----------
+    filename : Path
+        Path to the Petrel exported file.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        Point set as a dataframe.
+    
+    Notes
+    -----
+    Point set format assumptions:
+        - The file has no header.
+        - Column order is: Inline, Xline, Easting, Northing, Depth.
+        - Values are space separated.
+    
+    """
+    col_names = ["inline", "xline", "easting", "northing", "depth"]
+    df = pd.read_csv(filepath, sep=r"\s+", header=None, names=col_names)
+    return df
