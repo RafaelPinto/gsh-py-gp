@@ -68,7 +68,11 @@ def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
 def plot_cartesian_gridded_surface(
     df: pd.DataFrame,
     title: str | None = None,
-    figsize: Tuple[int, int] = (8, 8)
+    figsize: Tuple[int, int] = (8, 8),
+    cmap: str = "viridis_r",
+    vmin: float | None = None,
+    vmax: float | None = None,
+    alpha: float | None = None,
     ) -> Tuple[plt.Figure, plt.Axes]: # type: ignore
     """Plot points in cartesian grid.
 
@@ -80,8 +84,14 @@ def plot_cartesian_gridded_surface(
     title : str or None, optional
         Title to be placed on top of the figure. Defaults to `None`, i.e.,
         no title.
-    figsize: tuple[int, int], optional
+    figsize : tuple[int, int], optional
         Figure width, height in inches. Defaults to (8, 8).
+    cmap : str
+        Colormap.
+    vmin, vmax : float
+        Define the data range that the colormap covers.
+    alpha : float
+        The alpha blending value, between 0 (transparent) and 1 (opaque).
 
     Returns
     -------
@@ -95,7 +105,15 @@ def plot_cartesian_gridded_surface(
 
     fig, ax = plt.subplots(figsize=figsize)
     ax.axis('equal')
-    im = ax.pcolormesh(X, Y, Z, cmap="viridis_r", shading="nearest")
+    im = ax.pcolormesh(
+        X,
+        Y,
+        Z,
+        cmap=cmap,
+        shading="nearest",
+        vmin=vmin,
+        vmax=vmax,
+        alpha=alpha)
     fig.colorbar(im, ax=ax, label="Depth (m)")
     ax.set_xlabel("Easting (m)")
     ax.set_ylabel("Northing (m)")
