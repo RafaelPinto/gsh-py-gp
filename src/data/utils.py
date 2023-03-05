@@ -36,7 +36,7 @@ def head(filepath : Path, max_line_count : int = 10) -> None:
     """
     with open(filepath, "r") as fhandle:
         for _, line in zip(range(max_line_count), fhandle):
-            print(line)
+            print(line, end="")
 
 
 def download_from_groningen(
