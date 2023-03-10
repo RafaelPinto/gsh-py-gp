@@ -1,6 +1,7 @@
 from typing import Tuple, Callable
 
 import numpy as np
+from matplotlib.collections import QuadMesh
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -67,13 +68,13 @@ def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
 
 def plot_cartesian_gridded_surface(
     df: pd.DataFrame,
+    ax: plt.Axes,
     title: str | None = None,
-    figsize: Tuple[int, int] = (8, 8),
     cmap: str = "viridis_r",
     vmin: float | None = None,
     vmax: float | None = None,
     alpha: float | None = None,
-    ) -> Tuple[plt.Figure, plt.Axes]: # type: ignore
+    ) -> QuadMesh:
     """Plot points in cartesian grid.
 
     Parameters
@@ -81,11 +82,11 @@ def plot_cartesian_gridded_surface(
     df : pandas.DataFrame
         Gridded surface as a Dataframe. It should contain the coordinate columns
         (easting, northing) and depth.
+    ax : plt.Axes
+        A single matplotlib `Axes` object.
     title : str or None, optional
         Title to be placed on top of the figure. Defaults to `None`, i.e.,
         no title.
-    figsize : tuple[int, int], optional
-        Figure width, height in inches. Defaults to (8, 8).
     cmap : str
         Colormap.
     vmin, vmax : float
@@ -95,16 +96,12 @@ def plot_cartesian_gridded_surface(
 
     Returns
     -------
-    fig : plt.figure.Figure
-        Matplotlib `Figure`.
     ax : plt.Axes
         A single matplotlib `Axes` object.
         
     """
     X, Y, Z = get_meshes_from_gridded_surface_pointset(df)
 
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.axis('equal')
     im = ax.pcolormesh(
         X,
         Y,
@@ -114,11 +111,11 @@ def plot_cartesian_gridded_surface(
         vmin=vmin,
         vmax=vmax,
         alpha=alpha)
-    fig.colorbar(im, ax=ax, label="Depth (m)")
     ax.set_xlabel("Easting (m)")
     ax.set_ylabel("Northing (m)")
+    ax.axis('equal')
     
     if title:
         ax.set_title(title)
 
-    return fig, ax
+    return im
