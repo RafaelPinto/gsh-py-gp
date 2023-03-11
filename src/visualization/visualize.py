@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-def index_depth(df : pd.DataFrame) -> Callable:
+def index_z(df : pd.DataFrame, z_name : str = "depth") -> Callable:
     """Build vectorized function that returns depth given (northing, easting).
 
     Parameters
     ----------
     df : pandas.DataFrame
         Gridded surface as a Dataframe. It should contain the coordinate columns
-        (easting, northing) and depth.
+        (easting, northing) and depth or time.
+    z_name : {"depth", "time"}, optional
+        Column name in df for the vertical dimension.
 
     Returns
     -------
@@ -21,19 +23,22 @@ def index_depth(df : pd.DataFrame) -> Callable:
         Vectorized function that returns depth given (nothing, easting).
     
     """
-    indexed_depth = {}
+    indexed_z = {}
     for row in df.itertuples():
-        indexed_depth[(row.easting, row.northing)] = row.depth
+        indexed_z[(row.easting, row.northing)] = getattr(row, z_name)
 
-    def get_depth(easting : float, northing : float) -> float:
-        return indexed_depth.get((easting, northing), np.nan)
+    def get_z(easting : float, northing : float) -> float:
+        return indexed_z.get((easting, northing), np.nan)
     
-    get_depth_array = np.frompyfunc(get_depth, nin=2, nout=1)
+    get_depth_array = np.frompyfunc(get_z, nin=2, nout=1)
     
     return get_depth_array
 
 
-def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
+def get_meshes_from_gridded_surface_pointset(
+        df : pd.DataFrame,
+        z_name : str = "depth",
+        ) -> Tuple[
     np.ndarray, np.ndarray, np.ndarray
     ]:
     """Create coordinates meshes from a gridded surface stored as a point set.
@@ -43,6 +48,8 @@ def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
     df : pandas.DataFrame
         Gridded surface as a Dataframe. It should contain the coordinate columns
         (easting, northing) and depth.
+    z_name : {"depth", "time"}, optional
+        Column name in df for the vertical dimension.
 
     Returns
     -------
@@ -59,8 +66,8 @@ def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
 
     X, Y = np.meshgrid(unique_easting, unique_northing)
 
-    get_depth_array = index_depth(df)
-    Z = get_depth_array(X, Y)
+    get_vert_array = index_z(df, z_name)
+    Z = get_vert_array(X, Y)
     Z = Z.astype(float)
 
     return X, Y, Z
@@ -69,6 +76,7 @@ def get_meshes_from_gridded_surface_pointset(df : pd.DataFrame) -> Tuple[
 def plot_cartesian_gridded_surface(
     df: pd.DataFrame,
     ax: plt.Axes,
+    z_name: str = "depth",
     title: str | None = None,
     cmap: str = "viridis_r",
     vmin: float | None = None,
@@ -82,6 +90,8 @@ def plot_cartesian_gridded_surface(
     df : pandas.DataFrame
         Gridded surface as a Dataframe. It should contain the coordinate columns
         (easting, northing) and depth.
+    z_name : {"depth", "time"}, optional
+        Column name in df for the vertical dimension.
     ax : plt.Axes
         A single matplotlib `Axes` object.
     title : str or None, optional
@@ -100,7 +110,7 @@ def plot_cartesian_gridded_surface(
         A single matplotlib `Axes` object.
         
     """
-    X, Y, Z = get_meshes_from_gridded_surface_pointset(df)
+    X, Y, Z = get_meshes_from_gridded_surface_pointset(df, z_name)
 
     im = ax.pcolormesh(
         X,
