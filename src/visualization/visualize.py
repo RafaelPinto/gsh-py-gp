@@ -1,19 +1,19 @@
-from typing import Tuple, Callable
+from typing import Callable, Tuple
 
-import numpy as np
-from matplotlib.collections import QuadMesh
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+from matplotlib.collections import QuadMesh
 
 
-def index_z(df : pd.DataFrame, z_name : str = "depth") -> Callable:
+def index_z(df: pd.DataFrame, z_name: str = "depth") -> Callable:
     """Build vectorized function that returns depth given (northing, easting).
 
     Parameters
     ----------
     df : pandas.DataFrame
-        Gridded surface as a Dataframe. It should contain the coordinate columns
-        (easting, northing) and depth or time.
+        Gridded surface as a Dataframe. It should contain the coordinate
+        columns (easting, northing) and depth or time.
     z_name : {"depth", "time"}, optional
         Column name in df for the vertical dimension.
 
@@ -21,33 +21,31 @@ def index_z(df : pd.DataFrame, z_name : str = "depth") -> Callable:
     -------
     get_depth_array : np.ufunc
         Vectorized function that returns depth given (nothing, easting).
-    
+
     """
     indexed_z = {}
     for row in df.itertuples():
         indexed_z[(row.easting, row.northing)] = getattr(row, z_name)
 
-    def get_z(easting : float, northing : float) -> float:
+    def get_z(easting: float, northing: float) -> float:
         return indexed_z.get((easting, northing), np.nan)
-    
+
     get_depth_array = np.frompyfunc(get_z, nin=2, nout=1)
-    
+
     return get_depth_array
 
 
 def get_meshes_from_gridded_surface_pointset(
-        df : pd.DataFrame,
-        z_name : str = "depth",
-        ) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray
-    ]:
+    df: pd.DataFrame,
+    z_name: str = "depth",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create coordinates meshes from a gridded surface stored as a point set.
 
     Parameters
     ----------
     df : pandas.DataFrame
-        Gridded surface as a Dataframe. It should contain the coordinate columns
-        (easting, northing) and depth.
+        Gridded surface as a Dataframe. It should contain the coordinate
+        columns (easting, northing) and depth.
     z_name : {"depth", "time"}, optional
         Column name in df for the vertical dimension.
 
@@ -59,7 +57,7 @@ def get_meshes_from_gridded_surface_pointset(
         Northing coordinates mesh.
     Z : ndarray
         Depth values mesh.
-    
+
     """
     unique_northing = np.sort(df.northing.unique())
     unique_easting = np.sort(df.easting.unique())
@@ -82,14 +80,14 @@ def plot_cartesian_gridded_surface(
     vmin: float | None = None,
     vmax: float | None = None,
     alpha: float | None = None,
-    ) -> QuadMesh:
+) -> QuadMesh:
     """Plot points in cartesian grid.
 
     Parameters
     ----------
     df : pandas.DataFrame
-        Gridded surface as a Dataframe. It should contain the coordinate columns
-        (easting, northing) and depth.
+        Gridded surface as a Dataframe. It should contain the coordinate
+        columns (easting, northing) and depth.
     z_name : {"depth", "time"}, optional
         Column name in df for the vertical dimension.
     ax : plt.Axes
@@ -108,7 +106,7 @@ def plot_cartesian_gridded_surface(
     -------
     ax : plt.Axes
         A single matplotlib `Axes` object.
-        
+
     """
     X, Y, Z = get_meshes_from_gridded_surface_pointset(df, z_name)
 
@@ -120,11 +118,12 @@ def plot_cartesian_gridded_surface(
         shading="nearest",
         vmin=vmin,
         vmax=vmax,
-        alpha=alpha)
+        alpha=alpha,
+    )
     ax.set_xlabel("Easting (m)")
     ax.set_ylabel("Northing (m)")
-    ax.axis('equal')
-    
+    ax.axis("equal")
+
     if title:
         ax.set_title(title)
 

@@ -1,20 +1,19 @@
 from pathlib import Path
-import requests
 
 import pandas as pd
-
+import requests
 
 URL_BASE = "https://swung-hosted.s3.ca-central-1.amazonaws.com/"
 
 
-def line_count(filepath : Path) -> None:
+def line_count(filepath: Path) -> None:
     """Print number of lines (count) in file.
 
     Parameters
     ----------
         filepath : pathlib.Path
             Path to the file that will be read.
-    
+
     """
     count = 0
     with open(filepath, "r") as fhandle:
@@ -23,7 +22,7 @@ def line_count(filepath : Path) -> None:
     print(f"Line count: {count:,}")
 
 
-def head(filepath : Path, max_line_count : int = 10) -> None:
+def head(filepath: Path, max_line_count: int = 10) -> None:
     """Print lines from file.
 
     Parameters
@@ -32,7 +31,7 @@ def head(filepath : Path, max_line_count : int = 10) -> None:
             Path to the file that will be read.
         max_line_count : int, optional
             Limit of lines that will be read. Defaults to 10.
-    
+
     """
     with open(filepath, "r") as fhandle:
         for _, line in zip(range(max_line_count), fhandle):
@@ -40,10 +39,8 @@ def head(filepath : Path, max_line_count : int = 10) -> None:
 
 
 def download_from_groningen(
-    files : list,
-    dst_dir : Path,
-    overwrite : bool = False
-    ) -> None:
+    files: list, dst_dir: Path, overwrite: bool = False
+) -> None:
     """Dowload files from Groningen's open data fork.
 
     Parameters
@@ -56,7 +53,7 @@ def download_from_groningen(
         overwrite: Bool, optional
             What should we do if the file already exists.
             Default to False, i.e., don't overwrite.
-    
+
     Notes
     -----
         Based on the code available at:
@@ -79,11 +76,12 @@ def download_from_groningen(
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
             with open(fullpath, "wb") as f:
-                for chunk in r.iter_content(chunk_size=2_097_152):  # Bytes in chunk.
+                # Bytes in chunk.
+                for chunk in r.iter_content(chunk_size=2_097_152):
                     f.write(chunk)
 
 
-def read_petrel_exported_pointset(filepath : Path) -> pd.DataFrame:
+def read_petrel_exported_pointset(filepath: Path) -> pd.DataFrame:
     """Read Petrel exported point set into a dataframe.
 
     Parameters
@@ -95,14 +93,14 @@ def read_petrel_exported_pointset(filepath : Path) -> pd.DataFrame:
     -------
     df : pd.DataFrame
         Point set as a dataframe.
-    
+
     Notes
     -----
     Point set format assumptions:
         - The file has no header.
         - Column order is: Inline, Xline, Easting, Northing, Depth.
         - Values are space separated.
-    
+
     """
     col_names = ["inline", "xline", "easting", "northing", "depth"]
     df = pd.read_csv(filepath, sep=r"\s+", header=None, names=col_names)
