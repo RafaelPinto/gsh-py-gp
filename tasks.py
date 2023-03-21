@@ -1,5 +1,7 @@
 from invoke import task
 
+from src.data import download, make_sua_surfaces
+
 # Set
 ENV_NAME = "gsh_py_gp"
 
@@ -42,4 +44,9 @@ def env_remove(c):
 
 @task
 def data_download(c):
-    c.run("python -m src.data.download")
+    download.main()
+
+
+@task
+def make_surfaces(c):
+    make_sua_surfaces.main()
