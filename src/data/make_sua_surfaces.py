@@ -156,10 +156,13 @@ def update_horizon(
     return horizon_update
 
 
-if __name__ == "__main__":
+def main():
+    """Make SUA proxy surfaces."""
     # Convert downloaded seismic data from SEGY to SEISNC format
     # This will take 2-3 hours
     if not SEISNC_PATH.exists():
+        print("Seismic data in SEISNC format was not found.")
+        print("Converting seismic data from SEGY to SEISNC.")
         segy.segy_converter(
             SEGY_PATH,
             SEISNC_PATH,
@@ -170,16 +173,37 @@ if __name__ == "__main__":
             vert_domain="DEPTH",
         )
 
+    print("Loading seismic data in SEISNC format.")
     seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
 
+    print("Loading horizons.")
     horizons = load_horizons(HORIZON_PATH)
 
+    print("Converting horizons to Xarray.")
     rnr01_t = convert_horizon_to_xarray(horizons["RNRO1_T"], seisnc)
-    ro_t = convert_horizon_to_xarray(horizons["ro_t"], seisnc)
+    ro_t = convert_horizon_to_xarray(horizons["RO_T"], seisnc)
 
+    print("Calculating isochore.")
     salt_isochore = ro_t - rnr01_t
 
     reference_anhydrite_perc = 0.2
     reference_salt_vp = calc_mixed_salt_vp(reference_anhydrite_perc)
     # t = d / v
     reference_salt_isochrone = salt_isochore / reference_salt_vp
+
+    dst_dir = DST_DIR / "processed/surfaces"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
+    anhydrite_percs = [perc / 100 for perc in range(5, 33, 1)]
+    for anhydrite_perc in anhydrite_percs:
+        print(f"Updating target structure with anhydrite percent: {anhydrite_perc}.")
+        target_update = update_horizon(
+            rnr01_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
+        )
+        dst = dst_dir / f"ro_t_anhydrite_perc_{anhydrite_perc:.2f}.nc"
+        target_update.to_netcdf(dst)
+        print(f"Saved target surface to: {dst}")
+
+
+if __name__ == "__main__":
+    main()
