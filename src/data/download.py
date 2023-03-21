@@ -68,5 +68,10 @@ def download_from_groningen(
                     f.write(chunk)
 
 
-if __name__ == "__main__":
+def main():
+    """Download Groningen data."""
     download_from_groningen(FILES_TO_DOWNLOAD, DST_DIR, overwrite=False)
+
+
+if __name__ == "__main__":
+    main()
