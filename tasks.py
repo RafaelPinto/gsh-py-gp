@@ -48,5 +48,10 @@ def data_download(c):
 
 
 @task
-def make_surfaces(c):
-    make_sua_surfaces.main()
+def make_surfaces(
+    c,
+    anhydrite_perc_min: int = 5,
+    anhydrite_perc_max: int = 33,
+    anhydrite_perc_step: int = 1,
+):
+    make_sua_surfaces.main(anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step)

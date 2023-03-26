@@ -216,7 +216,11 @@ def update_horizon(
     return horizon_update
 
 
-def main():
+def main(
+    anhydrite_perc_min: int = 5,
+    anhydrite_perc_max: int = 33,
+    anhydrite_perc_step: int = 1,
+):
     """Make SUA proxy surfaces."""
     print("Loading horizons mapped to seismic")
     rnro1_t = load_mapped_horizon("rnro1_t")
@@ -233,7 +237,10 @@ def main():
     dst_dir = DST_DIR / "processed/surfaces"
     dst_dir.mkdir(parents=True, exist_ok=True)
 
-    anhydrite_percs = [perc / 100 for perc in range(5, 33, 1)]
+    anhydrite_percs = [
+        perc / 100
+        for perc in range(anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step)
+    ]
     for anhydrite_perc in anhydrite_percs:
         print(f"Updating target structure with anhydrite percent: {anhydrite_perc}.")
         target_update = update_horizon(
@@ -243,7 +250,3 @@ def main():
         dst = dst_dir / f"ro_t_anhydrite_perc_{perc:03d}.nc"
         target_update.to_netcdf(dst)
         print(f"Saved target surface to: {dst}")
-
-
-if __name__ == "__main__":
-    main()
