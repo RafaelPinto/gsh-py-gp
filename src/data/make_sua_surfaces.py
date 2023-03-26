@@ -26,32 +26,62 @@ SEISNC_PATH = DST_DIR / "interim/R3136_15UnrPrDMkD_Full_D_Rzn_RMO_Shp_vG.seisnc"
 HORIZON_DIR = DST_DIR / "external/groningen/Horizon_Interpretation"
 
 HORIZON_PATH = {
-    "RNRO1_T": HORIZON_DIR / "DCAT201605_R3136_RNRO1_T_pk_depth",
-    "RO_T": HORIZON_DIR / "RO____T",
+    "rnr01_t": HORIZON_DIR / "DCAT201605_R3136_RNRO1_T_pk_depth",
+    "ro_t": HORIZON_DIR / "RO____T",
+}
+
+MAPPED_HORIZON_DIR = DST_DIR / "interim/surfaces"
+
+MAPPED_HORIZON_PATH = {
+    "rnr01_t": MAPPED_HORIZON_DIR / "rnr01_t.nc",
+    "ro_t": MAPPED_HORIZON_DIR / "ro_t.nc",
 }
 
 
-def load_horizons(horizon_paths: Dict[str, Path]) -> Dict[str, pd.DataFrame]:
-    """Load horizons in 5 column format.
-
-    Parameters
-    ----------
-    horizon_paths: Dict[str, Path]
-        A mapping from horizons names to horizon file path.
+def load_seisnc_data() -> xr.Dataset:
+    """Load seismic data in SEISNC format.
 
     Returns
     -------
-    horizons: Dict[str, Path]
+    seisnc: xr.Dataset
+        Seimic data loaded to an Xarray dataset.
+    """
+    # Convert seismic data from SEGY to SEISNC format
+    # This will take 2-3 hours
+    if not SEISNC_PATH.exists():
+        print("Seismic data in SEISNC format was not found.")
+        print("Converting seismic data from SEGY to SEISNC.")
+        segy.segy_converter(
+            SEGY_PATH,
+            SEISNC_PATH,
+            iline=SEGY_INLINE_BYTE,
+            xline=SEGY_XLINE_BYTE,
+            cdpx=SEGY_CDPX_BYTE,
+            cdpy=SEGY_CDPY_BYTE,
+            vert_domain="DEPTH",
+        )
+
+    print("Loading seismic data in SEISNC format.")
+    seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
+
+    return seisnc
+
+
+def load_horizon(horizon_path: Path) -> pd.DataFrame:
+    """Load horizon in 5 column format to dataframe.
+
+    Parameters
+    ----------
+    horizon_path: Path
+        the horizon file path.
+
+    Returns
+    -------
+    pd.Dataframe
         A mapping from horizons names to horizons loaded as dataframes.
     """
     col_names = ["inline", "xline", "easting", "northing", "depth"]
-
-    horizons = {}
-    for horizon_name, horizon_path in horizon_paths.items():
-        horizons[horizon_name] = pd.read_csv(
-            horizon_path, sep=r"\s+", header=None, names=col_names
-        )
-    return horizons
+    return pd.read_csv(horizon_path, sep=r"\s+", header=None, names=col_names)
 
 
 def convert_horizon_to_xarray(
@@ -84,6 +114,37 @@ def convert_horizon_to_xarray(
     horizon_mapped = horizon_mapped.drop_vars("depth")
 
     return horizon_mapped
+
+
+def load_mapped_horizon(horizon_name: str) -> xr.DataArray:
+    """Load horizon mapped to seismic from disk.
+
+    Parameters
+    ----------
+    horizon_name: One of {rnr01_t, ro_t}
+
+    Returns
+    -------
+    mapped_horizon: xr.DataArray
+        Seismic grid mapped horizon as a DataArray.
+    """
+    print(f"Loading horizon mapped to seismic: {horizon_name}")
+    try:
+        mapped_horizon = xr.open_dataarray(MAPPED_HORIZON_PATH[horizon_name])
+    except FileNotFoundError:
+        seisnc = load_seisnc_data()
+        mapped_horizon = load_horizon(HORIZON_PATH[horizon_name])
+
+        print(f"Converting horizon to Xarray: {horizon_name}")
+        mapped_horizon = convert_horizon_to_xarray(mapped_horizon, seisnc)
+
+        print(f"Saving horizon to NetCDF: {horizon_name}")
+        dst_dir = MAPPED_HORIZON_PATH[horizon_name].parent
+        if not dst_dir.exists():
+            dst_dir.mkdir(parents=True)
+        mapped_horizon.to_netcdf(MAPPED_HORIZON_PATH[horizon_name])
+
+    return mapped_horizon
 
 
 def calc_mixed_salt_vp(
@@ -158,30 +219,9 @@ def update_horizon(
 
 def main():
     """Make SUA proxy surfaces."""
-    # Convert downloaded seismic data from SEGY to SEISNC format
-    # This will take 2-3 hours
-    if not SEISNC_PATH.exists():
-        print("Seismic data in SEISNC format was not found.")
-        print("Converting seismic data from SEGY to SEISNC.")
-        segy.segy_converter(
-            SEGY_PATH,
-            SEISNC_PATH,
-            iline=SEGY_INLINE_BYTE,
-            xline=SEGY_XLINE_BYTE,
-            cdpx=SEGY_CDPX_BYTE,
-            cdpy=SEGY_CDPY_BYTE,
-            vert_domain="DEPTH",
-        )
-
-    print("Loading seismic data in SEISNC format.")
-    seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
-
-    print("Loading horizons.")
-    horizons = load_horizons(HORIZON_PATH)
-
-    print("Converting horizons to Xarray.")
-    rnr01_t = convert_horizon_to_xarray(horizons["RNRO1_T"], seisnc)
-    ro_t = convert_horizon_to_xarray(horizons["RO_T"], seisnc)
+    print("Loading horizons mapped to seismic")
+    rnr01_t = load_mapped_horizon("rnr01_t")
+    ro_t = load_mapped_horizon("ro_t")
 
     print("Calculating isochore.")
     salt_isochore = ro_t - rnr01_t
@@ -200,7 +240,8 @@ def main():
         target_update = update_horizon(
             rnr01_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
         )
-        dst = dst_dir / f"ro_t_anhydrite_perc_{anhydrite_perc:.2f}.nc"
+        perc = int(anhydrite_perc * 100)
+        dst = dst_dir / f"ro_t_anhydrite_perc_{perc:03d}.nc"
         target_update.to_netcdf(dst)
         print(f"Saved target surface to: {dst}")
 
