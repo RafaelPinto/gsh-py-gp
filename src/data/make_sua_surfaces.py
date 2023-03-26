@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 import xarray as xr
@@ -26,14 +25,14 @@ SEISNC_PATH = DST_DIR / "interim/R3136_15UnrPrDMkD_Full_D_Rzn_RMO_Shp_vG.seisnc"
 HORIZON_DIR = DST_DIR / "external/groningen/Horizon_Interpretation"
 
 HORIZON_PATH = {
-    "rnr01_t": HORIZON_DIR / "DCAT201605_R3136_RNRO1_T_pk_depth",
+    "rnro1_t": HORIZON_DIR / "DCAT201605_R3136_RNRO1_T_pk_depth",
     "ro_t": HORIZON_DIR / "RO____T",
 }
 
 MAPPED_HORIZON_DIR = DST_DIR / "interim/surfaces"
 
 MAPPED_HORIZON_PATH = {
-    "rnr01_t": MAPPED_HORIZON_DIR / "rnr01_t.nc",
+    "rnro1_t": MAPPED_HORIZON_DIR / "rnro1_t.nc",
     "ro_t": MAPPED_HORIZON_DIR / "ro_t.nc",
 }
 
@@ -121,7 +120,7 @@ def load_mapped_horizon(horizon_name: str) -> xr.DataArray:
 
     Parameters
     ----------
-    horizon_name: One of {rnr01_t, ro_t}
+    horizon_name: One of {rnro1_t, ro_t}
 
     Returns
     -------
@@ -220,11 +219,11 @@ def update_horizon(
 def main():
     """Make SUA proxy surfaces."""
     print("Loading horizons mapped to seismic")
-    rnr01_t = load_mapped_horizon("rnr01_t")
+    rnro1_t = load_mapped_horizon("rnro1_t")
     ro_t = load_mapped_horizon("ro_t")
 
     print("Calculating isochore.")
-    salt_isochore = ro_t - rnr01_t
+    salt_isochore = ro_t - rnro1_t
 
     reference_anhydrite_perc = 0.2
     reference_salt_vp = calc_mixed_salt_vp(reference_anhydrite_perc)
@@ -238,7 +237,7 @@ def main():
     for anhydrite_perc in anhydrite_percs:
         print(f"Updating target structure with anhydrite percent: {anhydrite_perc}.")
         target_update = update_horizon(
-            rnr01_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
+            rnro1_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
         )
         perc = int(anhydrite_perc * 100)
         dst = dst_dir / f"ro_t_anhydrite_perc_{perc:03d}.nc"
