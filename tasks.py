@@ -1,6 +1,6 @@
 from invoke import task
 
-from src.data import download, make_sua_surfaces
+from src.data import download, make_sua_surfaces, make_summary
 
 # Set
 ENV_NAME = "gsh_py_gp"
@@ -59,3 +59,8 @@ def make_surfaces(
     make_sua_surfaces.main(
         anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step
     )
+
+
+@task
+def make_quantiles(c, overwrite: bool = False):
+    make_summary.main(overwrite=overwrite)
