@@ -20,7 +20,9 @@ SEGY_CDPX_BYTE = 73
 SEGY_CDPY_BYTE = 77
 
 # Path to seismic data in SEISNC format
-SEISNC_PATH = DST_DIR / "interim/R3136_15UnrPrDMkD_Full_D_Rzn_RMO_Shp_vG.seisnc"
+SEISNC_PATH = (
+    DST_DIR / "interim/R3136_15UnrPrDMkD_Full_D_Rzn_RMO_Shp_vG.seisnc"
+)
 
 HORIZON_DIR = DST_DIR / "external/groningen/Horizon_Interpretation"
 
@@ -239,10 +241,15 @@ def main(
 
     anhydrite_percs = [
         perc / 100
-        for perc in range(anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step)
+        for perc in range(
+            anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step
+        )
     ]
     for anhydrite_perc in anhydrite_percs:
-        print(f"Updating target structure with anhydrite percent: {anhydrite_perc}.")
+        print(
+            "Updating target structure with anhydrite percent:"
+            f" {anhydrite_perc}."
+        )
         target_update = update_horizon(
             rnro1_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
         )

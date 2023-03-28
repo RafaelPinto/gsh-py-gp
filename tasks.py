@@ -28,7 +28,9 @@ def env_set_jupyter(c):
 
 @task
 def env_to_freeze(c):
-    c.run(f"conda env export --name {ENV_NAME} --file environment_to_freeze.yml")
+    c.run(
+        f"conda env export --name {ENV_NAME} --file environment_to_freeze.yml"
+    )
     print("Exported freeze environment to: environment_to_freeze.yml")
 
 
@@ -54,4 +56,6 @@ def make_surfaces(
     anhydrite_perc_max: int = 33,
     anhydrite_perc_step: int = 1,
 ):
-    make_sua_surfaces.main(anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step)
+    make_sua_surfaces.main(
+        anhydrite_perc_min, anhydrite_perc_max, anhydrite_perc_step
+    )
