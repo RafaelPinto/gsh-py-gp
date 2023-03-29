@@ -49,7 +49,7 @@ def data_download(c):
     download.main()
 
 
-@task
+@task(pre=[data_download])
 def make_surfaces(
     c,
     anhydrite_perc_min: int = 5,
@@ -61,6 +61,6 @@ def make_surfaces(
     )
 
 
-@task
+@task(pre=[make_surfaces])
 def make_quantiles(c, overwrite: bool = False):
     make_summary.main(overwrite=overwrite)
