@@ -58,6 +58,7 @@ def calculate_quantiles(
 
 
 def main(overwrite):
+    """Calculate quantiles."""
     surfaces = xr.open_mfdataset(
         str(SURFACES_DIR / "*.nc"),
         combine="nested",
