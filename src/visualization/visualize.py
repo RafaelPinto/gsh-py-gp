@@ -1,9 +1,18 @@
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import xarray as xr
 from matplotlib.collections import QuadMesh
+from segysak import open_seisnc
+
+from src.data import make_sua_surfaces
+from src.data.make_sua_surfaces import SEISNC_PATH
+from src.data.make_summary import SUMMARY_DIR
+from src.definitions import ROOT_DIR
+
+FIGURES_DIR = ROOT_DIR / "reports/figures"
 
 
 def index_z(df: pd.DataFrame, z_name: str = "depth") -> Callable:
@@ -128,3 +137,108 @@ def plot_cartesian_gridded_surface(
         ax.set_title(title)
 
     return im
+
+
+def save_fig_inline_with_regional_and_summary_surfaces(
+    filename: str | None = None,
+    inl_sel: int = 9100,
+    xline_min: int = 7570,
+    xline_max: int = 9600,
+    depth_min: int = 0,
+    depth_max: int = 4000,
+    regional_surfaces: List[str] = ["ns_b", "ck_b", "rnro1_t", "ze_t", "ro_t"],
+    quantile_surfaces: List[float] = [0.10, 0.25, 0.50, 0.75, 0.90],
+):
+    """Save inline with regional and summary surfaces.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The file name that will be given to the saved figure.
+    inl_sel: int, optional
+        The inline number to slice the seismic data. Defaults to 9100.
+    xline_min: int, optional
+        The minimun xline to show. Defaults to 7570.
+    xline_max: int, optional
+        The maximun xline to show. Defaults to 9600.
+    depth_min: int, optional
+        The minimum depth to show. Defaults to 0 m.
+    depth_max: int, optional
+        The maximum depth to show. Defaults to 4000 m.
+    regional_surfaces: List[str], optional
+        A list with the namse of the reginal surfaces to plot. Defaults to
+        ["ns_b", "ck_b", "rnro1_t", "ze_t", "ro_t"].
+    quantile_surfaces: List[float], optional
+        A list with the values of the quantile surfaces to plot. Deafults to
+        [0.10, 0.25, 0.50, 0.75, 0.90]
+
+    """
+    if filename is None:
+        filename = f"Inline_{inl_sel}_with_regional_and_summary_surfaces.png"
+    # Load seismic
+    seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
+
+    # Load regional surfaces
+    surfaces = {
+        surface_name: make_sua_surfaces.load_mapped_horizon(surface_name)
+        for surface_name in regional_surfaces
+    }
+
+    # Load summary surfaces
+    quantiles = xr.open_dataarray(SUMMARY_DIR / "quantiles.nc")
+
+    # Plot
+    xline_range = slice(xline_min, xline_max)
+    depth_range = slice(depth_min, depth_max)
+
+    opt = dict(
+        x="xline",
+        y="depth",
+        add_colorbar=True,
+        interpolation="spline16",
+        robust=True,
+        yincrease=False,
+        cmap="Greys",
+    )
+
+    f, ax = plt.subplots(figsize=(16, 10), constrained_layout=True)
+
+    seisnc.data.sel(
+        iline=inl_sel, xline=xline_range, depth=depth_range
+    ).plot.imshow(ax=ax, **opt)
+
+    for surface_name, surface in surfaces.items():
+        trace = surface.sel(iline=inl_sel, xline=xline_range)
+        ax.plot(trace.xline, trace.values, label=surface_name)
+
+    for q in quantiles["quantile"]:
+        q = q.values
+        if q not in quantile_surfaces:
+            continue
+        quantile_trace = quantiles.sel(
+            iline=inl_sel, xline=xline_range, quantile=q
+        )
+        ax.plot(
+            quantile_trace.xline,
+            quantile_trace.values,
+            label=f"RO T P{q*100:.0f}",
+        )
+
+    ax.set_xlim(xline_min, xline_max)
+    ax.set_ylim(depth_max, depth_min)
+
+    ax.invert_xaxis()
+
+    if not FIGURES_DIR.exists():
+        FIGURES_DIR.mkdir(parents=True)
+    dst = FIGURES_DIR / filename
+    f.savefig(str(dst))
+
+
+def main():
+    save_fig_inline_with_regional_and_summary_surfaces()
+
+    save_fig_inline_with_regional_and_summary_surfaces(
+        filename="Zoomed_inline_9100.png",
+        regional_surfaces=["rnro1_t", "ro_t"],
+    )

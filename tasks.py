@@ -1,6 +1,7 @@
 from invoke import task
 
 from src.data import download, make_sua_surfaces, make_summary
+from src.visualization import visualize
 
 # Set
 ENV_NAME = "gsh_py_gp"
@@ -64,3 +65,8 @@ def make_surfaces(
 @task(pre=[make_surfaces])
 def make_quantiles(c, overwrite: bool = False):
     make_summary.main(overwrite=overwrite)
+
+
+@task(pre=[make_quantiles])
+def make_figures(c):
+    visualize.main()
