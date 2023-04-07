@@ -27,14 +27,20 @@ SEISNC_PATH = (
 HORIZON_DIR = DST_DIR / "external/groningen/Horizon_Interpretation"
 
 HORIZON_PATH = {
+    "ns_b": HORIZON_DIR / "DCAT201605_R3136_NS_B_tr_depth",
+    "ck_b": HORIZON_DIR / "DCAT201605_R3136_CK_B_pk_depth",
     "rnro1_t": HORIZON_DIR / "DCAT201605_R3136_RNRO1_T_pk_depth",
+    "ze_t": HORIZON_DIR / "DCAT201605_R3136_ZE_T_na_depth",
     "ro_t": HORIZON_DIR / "RO____T",
 }
 
 MAPPED_HORIZON_DIR = DST_DIR / "interim/surfaces"
 
 MAPPED_HORIZON_PATH = {
+    "ns_b": MAPPED_HORIZON_DIR / "ns_b.nc",
+    "ck_b": MAPPED_HORIZON_DIR / "ck_b.nc",
     "rnro1_t": MAPPED_HORIZON_DIR / "rnro1_t.nc",
+    "ze_t": MAPPED_HORIZON_DIR / "ze_t.nc",
     "ro_t": MAPPED_HORIZON_DIR / "ro_t.nc",
 }
 
@@ -122,7 +128,7 @@ def load_mapped_horizon(horizon_name: str) -> xr.DataArray:
 
     Parameters
     ----------
-    horizon_name: One of {rnro1_t, ro_t}
+    horizon_name: One of {ns_b, ck_b, rnro1_t, ze_t, ro_t}.
 
     Returns
     -------
