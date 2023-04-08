@@ -6,9 +6,10 @@ from segysak import open_seisnc, segy
 
 from src.definitions import ROOT_DIR
 
-# Downloaded files directory
+# Data directory
 DST_DIR = ROOT_DIR / "data"
 
+# Downloaded seismic directory
 SEISMIC_DIR = DST_DIR / "external/groningen/Seismic_Volume"
 
 # Path to seismic data in SEGY format
@@ -43,6 +44,8 @@ MAPPED_HORIZON_PATH = {
     "ze_t": MAPPED_HORIZON_DIR / "ze_t.nc",
     "ro_t": MAPPED_HORIZON_DIR / "ro_t.nc",
 }
+
+PROXY_SURFACES_DIR = ROOT_DIR / "data/processed/surfaces"
 
 
 def load_seisnc_data() -> xr.Dataset:
@@ -242,8 +245,7 @@ def main(
     # t = d / v
     reference_salt_isochrone = salt_isochore / reference_salt_vp
 
-    dst_dir = DST_DIR / "processed/surfaces"
-    dst_dir.mkdir(parents=True, exist_ok=True)
+    PROXY_SURFACES_DIR.mkdir(parents=True, exist_ok=True)
 
     anhydrite_percs = [
         perc / 100
@@ -260,6 +262,6 @@ def main(
             rnro1_t, reference_salt_isochrone, anhydrite_perc=anhydrite_perc
         )
         perc = int(anhydrite_perc * 100)
-        dst = dst_dir / f"ro_t_anhydrite_perc_{perc:03d}.nc"
+        dst = PROXY_SURFACES_DIR / f"ro_t_anhydrite_perc_{perc:03d}.nc"
         target_update.to_netcdf(dst)
         print(f"Saved target surface to: {dst}")
