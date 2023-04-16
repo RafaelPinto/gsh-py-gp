@@ -5,10 +5,16 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib.collections import QuadMesh
+from matplotlib.patches import Polygon
 from segysak import open_seisnc
 
 from src.data import make_sua_surfaces
-from src.data.make_sua_surfaces import SEISNC_PATH
+from src.data.make_sua_surfaces import (
+    HORIZON_PATH,
+    PROXY_SURFACES_DIR,
+    SEISNC_PATH,
+    load_horizon,
+)
 from src.data.make_summary import SUMMARY_DIR
 from src.definitions import ROOT_DIR
 
@@ -148,7 +154,8 @@ def save_fig_inline_with_regional_and_summary_surfaces(
     depth_max: int = 4000,
     regional_surfaces: List[str] = ["ns_b", "ck_b", "rnro1_t", "ze_t", "ro_t"],
     quantile_surfaces: List[float] = [0.10, 0.25, 0.50, 0.75, 0.90],
-):
+    show_legend: bool = False,
+) -> None:
     """Save inline with regional and summary surfaces.
 
     Parameters
@@ -171,10 +178,13 @@ def save_fig_inline_with_regional_and_summary_surfaces(
     quantile_surfaces: List[float], optional
         A list with the values of the quantile surfaces to plot. Deafults to
         [0.10, 0.25, 0.50, 0.75, 0.90]
+    show_legend: bool, optional
+        Answers: Should we show the legend? Defaults to False (do not show).
 
     """
     if filename is None:
         filename = f"Inline_{inl_sel}_with_regional_and_summary_surfaces.png"
+
     # Load seismic
     seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
 
@@ -229,16 +239,210 @@ def save_fig_inline_with_regional_and_summary_surfaces(
 
     ax.invert_xaxis()
 
+    if show_legend:
+        f.legend(loc="lower center", ncol=9, bbox_to_anchor=(0.5, 0.05))
+
     if not FIGURES_DIR.exists():
         FIGURES_DIR.mkdir(parents=True)
     dst = FIGURES_DIR / filename
     f.savefig(str(dst))
 
 
+def save_fig_inline_with_proxy_surfaces(
+    filename: str | None = None,
+    inl_sel: int = 9100,
+    xline_min: int = 7625,
+    xline_max: int = 7900,
+    depth_min: int = 2700,
+    depth_max: int = 3200,
+) -> None:
+    """Save inline with SUA proxy surfaces.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The file name that will be given to the saved figure.
+    inl_sel: int, optional
+        The inline number to slice the seismic data. Defaults to 9100.
+    xline_min: int, optional
+        The minimun xline to show. Defaults to 7570.
+    xline_max: int, optional
+        The maximun xline to show. Defaults to 9600.
+    depth_min: int, optional
+        The minimum depth to show. Defaults to 0 m.
+    depth_max: int, optional
+        The maximum depth to show. Defaults to 4000 m.
+
+    """
+    if filename is None:
+        filename = f"Inline_{inl_sel}_with_proxy_surfaces.png"
+
+    # Load seismic
+    seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
+
+    # Load proxy surfaces
+    surfaces = xr.open_mfdataset(
+        str(PROXY_SURFACES_DIR / "*.nc"),
+        combine="nested",
+        concat_dim="anhydrite_perc",
+        parallel=True,
+    )
+
+    surfaces = surfaces.set_xindex(coord_names="perc")
+
+    # Plot
+    xline_range = slice(xline_min, xline_max)
+    depth_range = slice(depth_min, depth_max)
+
+    opt = dict(
+        x="xline",
+        y="depth",
+        add_colorbar=True,
+        interpolation="spline16",
+        robust=True,
+        yincrease=False,
+        cmap="Greys",
+    )
+
+    f, ax = plt.subplots(figsize=(16, 10), constrained_layout=True)
+
+    seisnc.data.sel(
+        iline=inl_sel, xline=xline_range, depth=depth_range
+    ).plot.imshow(ax=ax, **opt)
+
+    for perc in surfaces.perc.values:
+        trace = surfaces.sel(perc=perc, iline=inl_sel, xline=xline_range)
+        label = f"{perc:.2f}"
+        ax.plot(trace.xline, trace.depth, label=label)
+
+    ax.set_xlim(xline_min, xline_max)
+    ax.set_ylim(depth_max, depth_min)
+
+    ax.invert_xaxis()
+    f.legend(loc="lower center", ncol=9, bbox_to_anchor=(0.5, 0.05))
+
+    if not FIGURES_DIR.exists():
+        FIGURES_DIR.mkdir(parents=True)
+    dst = FIGURES_DIR / filename
+    f.savefig(str(dst))
+
+
+def save_seismic_basemap(filename: str | None = None, inl_sel: int = 9100):
+    """Save seismic basemap with given inline and RO Top posted.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The file name that will be given to the saved figure.
+    inl_sel: int, optional
+        The inline number to slice the seismic data. Defaults to 9100.
+
+    """
+
+    if filename is None:
+        filename = f"basemap_iline_{inl_sel}.png"
+
+    # Load seismic
+    seisnc = open_seisnc(SEISNC_PATH, chunks={"inline": 100})
+    seisnc.seis.calc_corner_points()
+
+    # Load RO Top horizon
+    ro_t = load_horizon(HORIZON_PATH["ro_t"])
+
+    # Coordinates text label positions in basemap
+    text_aligment_kwargs = [
+        {"horizontalalignment": "left", "verticalalignment": "bottom"},
+        {"horizontalalignment": "left", "verticalalignment": "top"},
+        {"horizontalalignment": "right", "verticalalignment": "top"},
+        {"horizontalalignment": "right", "verticalalignment": "bottom"},
+    ]
+
+    corners = np.array(seisnc.attrs["corner_points_xy"])
+
+    # Build seismic grid area (rectangle)
+    survey_limits = Polygon(
+        corners,
+        fill=False,
+        edgecolor="r",
+        linewidth=2,
+        label="3D survey extent",
+    )
+
+    # Plot Top Rotliegend
+    title = "Basemap: Top Rotliegend"
+    f, ax = plt.subplots(figsize=(14, 14))
+
+    im = plot_cartesian_gridded_surface(
+        ro_t,
+        ax=ax,
+        title=title,
+        cmap="viridis_r",
+        vmax=3000,
+        vmin=2500,
+    )
+    f.colorbar(im, ax=ax, label="Depth (m)")
+
+    # Plot seismic grid area
+    ax.add_patch(survey_limits)
+
+    # Plot selected inline
+    selected_inline = seisnc.data.sel(iline=inl_sel)
+    ax.plot(
+        selected_inline.cdp_x,
+        selected_inline.cdp_y,
+        color="blue",
+        label=f"Inline: {inl_sel}",
+    )
+    ax.axis("equal")
+    ax.legend()
+
+    # Add (inline, xline) labels to the seimic grid corners
+    for corner_point, corner_point_xy, kwargs in zip(
+        seisnc.attrs["corner_points"],
+        seisnc.attrs["corner_points_xy"],
+        text_aligment_kwargs,
+    ):
+        x, y = corner_point_xy
+        ax.text(x, y, str(corner_point), kwargs)
+    plt.show()
+
+    if not FIGURES_DIR.exists():
+        FIGURES_DIR.mkdir(parents=True)
+    dst = FIGURES_DIR / filename
+    f.savefig(str(dst), bbox_inches="tight")
+
+
 def main():
+    # Inline with regional surfaces and quantiles
     save_fig_inline_with_regional_and_summary_surfaces()
 
+    # Inline zoomed in with Top of Salt and RO
     save_fig_inline_with_regional_and_summary_surfaces(
         filename="Zoomed_inline_9100.png",
         regional_surfaces=["rnro1_t", "ro_t"],
     )
+
+    # Inline with all SUA proxy surfaces
+    save_fig_inline_with_proxy_surfaces()
+
+    # Inline with summary surfaces
+    inl_sel = 9100
+    xline_min = 7625
+    xline_max = 7900
+    depth_min = 2700
+    depth_max = 3200
+    quantile_surfaces = [0.10, 0.25, 0.50, 0.75, 0.90]
+    save_fig_inline_with_regional_and_summary_surfaces(
+        filename=f"Inline_{inl_sel}_with_summary_surfaces.png",
+        inl_sel=inl_sel,
+        xline_min=xline_min,
+        xline_max=xline_max,
+        depth_min=depth_min,
+        depth_max=depth_max,
+        regional_surfaces=[],
+        quantile_surfaces=quantile_surfaces,
+        show_legend=True,
+    )
+
+    # Basemap
+    save_seismic_basemap()
