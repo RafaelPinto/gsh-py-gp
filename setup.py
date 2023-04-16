@@ -1,9 +1,8 @@
 from setuptools import find_packages, setup
 
-
 description = """
     2023 GSH Spring Symposium Python in Geophysics,
-    Stories from the frontline.
+    Re-ranking seismic uncertainty analysis surfaces with Python.
 """
 
 setup(
