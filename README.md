@@ -6,6 +6,8 @@ We use the Groningen field seismic and horizons hosted by [Data underground 2020
 
 All the data exploration and discovery steps are documented with jupyter notebooks in the `/notebooks` directory.
 
+To access the slides used in the GSH's 2023 Spring Symposium [click here](https://docs.google.com/presentation/d/1FcpRLheSzbDu1JakHIG9k5i2W6mAZHrlLe1dD3TaYDc/edit?usp=sharing).
+
 ## Development environment
 
 To get all the dependencies into a single conda environment named `gsh_py_gp`, please run:
